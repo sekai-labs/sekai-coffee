@@ -38,6 +38,13 @@
         </dependency>
     </dependencies>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/sekai-labs/sekai-coffee</url>
+        </repository>
+    </distributionManagement>
+
     <modules>
         <module>packages</module>
     </modules>
