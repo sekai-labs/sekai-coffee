@@ -15,6 +15,19 @@
     <version>0.0.0</version>
     <description>Monorepo Of Sekai Labs Coffee</description>
     <packaging>pom</packaging>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection/>
+        <developerConnection>
+        </developerConnection>
+        <tag/>
+        <url/>
+    </scm>
 
     <dependencies>
         <dependency>
