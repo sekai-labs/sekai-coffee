@@ -27,9 +27,11 @@ jobs:
           cache: 'maven'
 
       - name: Build with Maven
+        working-directory: packages/jpaq
         run: mvn clean install
 
       - name: Publish to GitHub Packages
+        working-directory: packages/jpaq
         run: mvn deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
