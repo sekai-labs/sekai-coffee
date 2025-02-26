@@ -17,7 +17,7 @@
     <packaging>jar</packaging>
     <name>jpaq</name>
     <description>A lightweight library for converting URL queries to JPA Specifications</description>
-    <url>https://github.com/sekai-labs/jpaq</url>
+    <url>https://github.com/sekai-labs/sekai-coffee</url>
 
     <properties>
         <java.version>17</java.version>
@@ -118,15 +118,15 @@
 
     <distributionManagement>
         <repository>
-            <id>your-repo-id</id>
-            <url>https://repo.yourdomain.com/maven2</url>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/sekai-labs/jpaq</url>
         </repository>
     </distributionManagement>
 
     <scm>
-        <connection>scm:git:https://github.com/sekai-labs/jpaq.git</connection>
-        <developerConnection>scm:git:ssh://github.com/sekai-labs/jpaq.git</developerConnection>
-        <url>https://github.com/sekai-labs/jpaq</url>
+        <connection>scm:git:https://github.com/sekai-labs/sekai-coffee.git</connection>
+        <developerConnection>scm:git:ssh://github.com/sekai-labs/sekai-coffee.git</developerConnection>
+        <url>https://github.com/sekai-labs/sekai-coffee/tree/main/packages/jpaq</url>
     </scm>
 
 </project>
