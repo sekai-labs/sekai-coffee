@@ -1,10 +1,10 @@
 package org.sekailabs.jpaq.repositories;
-import java.io.Serializable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import org.sekailabs.jpaq.models.constant.QueryComparisonOperatorEnum;
 import org.sekailabs.jpaq.models.wrapper.PaginationWrapper;
 import org.sekailabs.jpaq.models.wrapper.QueryFieldWrapper;
 import org.sekailabs.jpaq.models.wrapper.QueryWrapper;
@@ -15,9 +15,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.NoRepositoryBean;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 @NoRepositoryBean
 public interface BaseRepository <T, ID extends Serializable> extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
     default Specification<T> queryAnySpecification(QueryWrapper queryWrapper) {
@@ -28,60 +35,9 @@ public interface BaseRepository <T, ID extends Serializable> extends JpaReposito
             if (queryWrapper == null || queryWrapper.isEmpty()) {
                 return criteriaBuilder.conjunction();
             }
-            Predicate[] advancedPredicates = queryWrapper.entrySet().stream().map(entry -> {
-                String field = entry.getKey();
-                QueryFieldWrapper wrapper = entry.getValue();
-                Object value = wrapper.getValue();
 
-                return switch (wrapper.getOperator()) {
-                    case EQ -> criteriaBuilder.equal(root.get(field).as(String.class), value.toString());
-                    case NE -> criteriaBuilder.notEqual(root.get(field).as(String.class), value.toString());
-                    case LIKE -> criteriaBuilder.like(
-                            root.get(field).as(String.class),
-                            "%" + value.toString() + "%"
-                    );
-                    case GT -> criteriaBuilder.greaterThan(
-                            root.get(field).as(String.class),
-                            value.toString()
-                    );
-                    case LT -> criteriaBuilder.lessThan(
-                            root.get(field).as(String.class),
-                            value.toString()
-                    );
-                    case GTE -> criteriaBuilder.greaterThanOrEqualTo(
-                            root.get(field).as(String.class),
-                            value.toString()
-                    );
-                    case LTE -> criteriaBuilder.lessThanOrEqualTo(
-                            root.get(field).as(String.class),
-                            value.toString()
-                    );
-                    case IN -> {
-                        if (value instanceof Collection<?> collection) {
-                            yield root.get(field).as(String.class).in(
-                                    collection.stream().map(Object::toString).toList()
-                            );
-                        }
-                        yield criteriaBuilder.conjunction();
-                    }
-                    case BETWEEN -> {
-                        if (value instanceof List<?> range && range.size() == 2) {
-                            yield criteriaBuilder.between(
-                                    root.get(field).as(String.class),
-                                    range.get(0).toString(),
-                                    range.get(1).toString()
-                            );
-                        }
-                        yield criteriaBuilder.conjunction();
-                    }
-                    default -> criteriaBuilder.conjunction();
-                };
-            }).toArray(Predicate[]::new);
             Predicate[] defaultPredicates = createDefaultPredicate(criteriaBuilder, root, queryWrapper);
-            return criteriaBuilder.or(
-                    criteriaBuilder.and(advancedPredicates),
-                    criteriaBuilder.and(defaultPredicates)
-            );
+            return criteriaBuilder.and(defaultPredicates);
         };
     }
     default Predicate[] createDefaultPredicate(
@@ -89,13 +45,100 @@ public interface BaseRepository <T, ID extends Serializable> extends JpaReposito
             Root<?> root,
             Map<String, QueryFieldWrapper> queryWrapper
     ) {
-        return queryWrapper.entrySet().stream()
-                .map(entry -> criteriaBuilder.equal(
-                        root.get(entry.getKey()),
-                        entry.getValue().getValue()
-                ))
-                .toArray(Predicate[]::new);
+        return queryWrapper.entrySet().stream().map(entry -> {
+            String field = entry.getKey();
+            QueryFieldWrapper wrapper = entry.getValue();
+            Object value = wrapper.getValue();
+
+            return switch (wrapper.getOperator()) {
+                case EQ -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.EQ);
+                case NE -> criteriaBuilder.notEqual(root.get(field), value);
+                case LIKE -> criteriaBuilder.like(root.get(field), "%" + value.toString() + "%");
+
+                case GT -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.GT);
+                case GTE -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.GTE);
+                case LT -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.LT);
+                case LTE -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.LTE);
+
+                case IN -> {
+                    if (value instanceof Collection<?> collection && !collection.isEmpty()) {
+                        if ("id".equals(field)) {
+                            yield root.get(field).in(collection.stream().map(val -> Long.parseLong(val.toString())).toList());
+                        } else {
+                            yield root.get(field).in(collection.stream().map(Object::toString).toList());
+                        }
+                    }
+                    yield criteriaBuilder.conjunction();
+                }
+
+                case BETWEEN -> {
+                    if (value instanceof List<?> range && range.size() == 2) {
+                        if ("id".equals(field)) {
+                            yield criteriaBuilder.between(
+                                    root.get(field).as(Long.class),
+                                    Long.parseLong(range.get(0).toString()),
+                                    Long.parseLong(range.get(1).toString())
+                            );
+                        } else {
+                            yield criteriaBuilder.between(
+                                    root.get(field),
+                                    range.get(0).toString(),
+                                    range.get(1).toString()
+                            );
+                        }
+                    }
+                    yield criteriaBuilder.conjunction();
+                }
+
+                default -> criteriaBuilder.conjunction();
+            };
+        }).toArray(Predicate[]::new);
     }
+
+    private Predicate buildComparisonPredicate(
+            CriteriaBuilder cb,
+            Root<?> root,
+            String field,
+            Object value,
+            QueryComparisonOperatorEnum op
+    ) {
+        Path<?> path = root.get(field);
+        Class<?> fieldType = path.getJavaType();
+        try {
+            if (fieldType.equals(Boolean.class)) {
+                return op.build(cb, root.get(field), Boolean.parseBoolean(value.toString()));
+            } else if (fieldType.equals(Integer.class)) {
+                return op.build(cb, root.get(field), Integer.parseInt(value.toString()));
+            } else if (fieldType.equals(Long.class)) {
+                return op.build(cb, root.get(field), Long.parseLong(value.toString()));
+            } else if (fieldType.equals(Float.class)) {
+                return op.build(cb, root.get(field), Float.parseFloat(value.toString()));
+            } else if (fieldType.equals(Double.class)) {
+                return op.build(cb, root.get(field), Double.parseDouble(value.toString()));
+            } else if (fieldType.equals(BigDecimal.class)) {
+                return op.build(cb, root.get(field), new BigDecimal(value.toString()));
+            } else if (fieldType.equals(LocalDate.class)) {
+                return op.build(cb, root.get(field), LocalDate.parse(value.toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            } else if (fieldType.equals(LocalDateTime.class)) {
+                String dateStr = value.toString();
+                DateTimeFormatter formatter;
+                if (dateStr.contains(".")) {
+                    int len = dateStr.substring(dateStr.indexOf('.') + 1).length();
+                    formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss" + (len == 3 ? ".SSS" : len == 6 ? ".SSSSSS" : ""));
+                } else {
+                    formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                }
+                return op.build(cb, root.get(field), LocalDateTime.parse(dateStr, formatter));
+            } else if (fieldType.equals(Instant.class)) {
+                return op.build(cb, root.get(field), Instant.parse(value.toString()));
+            } else {
+                return op.build(cb, root.get(field), value.toString());
+            }
+        } catch (Exception e) {
+            return cb.conjunction();
+        }
+    }
+
     default Predicate[] createDefaultPredicate(CriteriaBuilder criteriaBuilder, Root<?> root, QueryWrapper queryWrapper) {
         return createDefaultPredicate(criteriaBuilder, root, queryWrapper.search());
     }
