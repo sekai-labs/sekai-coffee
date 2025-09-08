@@ -1,10 +1,5 @@
 package org.sekailabs.jpaq.utils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class TextUtils {
     private TextUtils (){}
     public static String toCamelCase(String text, boolean isCapitalizeFirst) {
@@ -20,10 +15,6 @@ public class TextUtils {
             builder.append(word);
         }
         return builder.toString();
-    }
-
-    public static String toCamelCase(String text){
-        return toCamelCase(text, false);
     }
 
     public static String kebabToCamel(String kebabCaseString) {
@@ -59,30 +50,5 @@ public class TextUtils {
         }
 
         return kebabCaseString.toString();
-    }
-
-    public static Map<String, String> convertKeysToCamel(Map<String, String> parameters) {
-        Map<String, String> camelCaseParameters = new HashMap<>();
-        for (Map.Entry<String, String> entry : parameters.entrySet()) {
-            String camelCaseKey = kebabToCamel(entry.getKey());
-            camelCaseParameters.put(camelCaseKey, entry.getValue());
-        }
-        return camelCaseParameters;
-    }
-    public static boolean isValidUrl(String url) {
-        return url != null && (url.startsWith("http://") || url.startsWith("https://"));
-    }
-
-    public static List<String> extractValidUrls(String urlString) {
-        String[] urlsArray = urlString.split(",");
-        List<String> validUrls = new ArrayList<>();
-
-        for (String url : urlsArray) {
-            String trimmedUrl = url.trim();
-            if (isValidUrl(trimmedUrl)) {
-                validUrls.add(trimmedUrl);
-            }
-        }
-        return validUrls;
     }
 }

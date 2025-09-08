@@ -1,38 +1,46 @@
 package org.sekailabs.jpaq.models.dto;
 
-import java.util.List;
-
+import lombok.Getter;
 import org.sekailabs.jpaq.models.wrapper.PaginationWrapper;
 
-import lombok.Getter;
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.List;
 
 @Getter
 public class ResponseObject<T> {
     private final T content;
-    private final String message;
+    private final List<String> messages;
     private final String code;
     private final boolean success;
     private final PaginationObject pagination;
+    private final Timestamp requestTime;
     private ResponseObject(Builder<T> builder) {
         this.content = builder.content;
-        this.message = builder.message;
+        this.messages = builder.messages;
         this.code = builder.code;
         this.success = builder.success;
         this.pagination = builder.pagination;
+        this.requestTime = builder.requestTime;
     }
     public static class Builder<T> {
         private T content;
-        private String message;
+        private List<String> messages;
         private String code;
         private boolean success;
         private PaginationObject pagination;
+        private Timestamp requestTime;
 
         public Builder<T> content(T content) {
             this.content = content;
             return this;
         }
-        public Builder<T> message(String message) {
-            this.message = message;
+        public Builder<T> messages(List<String> messages) {
+            this.messages = messages;
+            return this;
+        }
+        public Builder<T> messages(String... messages) {
+            this.messages = Arrays.asList(messages);
             return this;
         }
         public Builder<T> code(String code) {
@@ -63,6 +71,7 @@ public class ResponseObject<T> {
             return this;
         }
         public ResponseObject<T> build() {
+            requestTime = new Timestamp(System.currentTimeMillis());
             return new ResponseObject<T>(this);
         }
     }
