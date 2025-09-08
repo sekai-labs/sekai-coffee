@@ -28,7 +28,7 @@ jobs:
 
       - name: Build with Maven
         working-directory: packages/jpaq
-        run: mvn clean install
+        run: mvn clean install -pl :jpaq -am
 
 
       - name: Deploy to Nexus
