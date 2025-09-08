@@ -23,15 +23,23 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '24'
           cache: 'maven'
 
       - name: Build with Maven
         working-directory: packages/jpaq
         run: mvn clean install
 
-      - name: Publish to GitHub Packages
+
+      - name: Deploy to Nexus
         working-directory: packages/jpaq
-        run: mvn --batch-mode deploy
+        run: mvn --batch-mode deploy -Pdeploy-nexus --settings ${{ github.workspace }}/settings/settings.xml
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Deploy to GitHub Packages
+        working-directory: packages/jpaq
+        run: mvn --batch-mode deploy -Pdeploy-github --settings ${{ github.workspace }}/settings/settings.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
