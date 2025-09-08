@@ -33,14 +33,14 @@ jobs:
 
       - name: Deploy to Nexus
         working-directory: packages/jpaq
-        run: mvn --batch-mode flatten:flatten deploy -Pdeploy-nexus --settings ${{ github.workspace }}/settings/settings.xml
+        run: mvn --batch-mode deploy -Pdeploy-nexus --settings ${{ github.workspace }}/settings/settings.xml
         env:
           NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
 
       - name: Deploy to GitHub Packages
         working-directory: packages/jpaq
-        run: mvn --batch-mode flatten:flatten deploy -Pdeploy-github --settings ${{ github.workspace }}/settings/settings.xml
+        run: mvn --batch-mode deploy -Pdeploy-github --settings ${{ github.workspace }}/settings/settings.xml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_USERNAME: ${{ github.actor }}
