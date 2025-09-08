@@ -4,10 +4,10 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import org.sekailabs.jpaq.models.constant.QueryComparisonOperatorEnum;
 import org.sekailabs.jpaq.models.wrapper.PaginationWrapper;
 import org.sekailabs.jpaq.models.wrapper.QueryFieldWrapper;
 import org.sekailabs.jpaq.models.wrapper.QueryWrapper;
+import org.springframework.cglib.core.internal.Function;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -24,7 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+
 @NoRepositoryBean
 public interface BaseRepository <T, ID extends Serializable> extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
     default Specification<T> queryAnySpecification(QueryWrapper queryWrapper) {
@@ -51,17 +51,17 @@ public interface BaseRepository <T, ID extends Serializable> extends JpaReposito
             Object value = wrapper.getValue();
 
             return switch (wrapper.getOperator()) {
-                case EQ -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.EQ);
+                case EQ -> buildComparisonPredicate(criteriaBuilder, root, field, value, ComparisonOperator.EQ);
                 case NE -> criteriaBuilder.notEqual(root.get(field), value);
                 case LIKE -> criteriaBuilder.like(root.get(field), "%" + value.toString() + "%");
 
-                case GT -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.GT);
-                case GTE -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.GTE);
-                case LT -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.LT);
-                case LTE -> buildComparisonPredicate(criteriaBuilder, root, field, value, QueryComparisonOperatorEnum.LTE);
+                case GT -> buildComparisonPredicate(criteriaBuilder, root, field, value, ComparisonOperator.GT);
+                case GTE -> buildComparisonPredicate(criteriaBuilder, root, field, value, ComparisonOperator.GTE);
+                case LT -> buildComparisonPredicate(criteriaBuilder, root, field, value, ComparisonOperator.LT);
+                case LTE -> buildComparisonPredicate(criteriaBuilder, root, field, value, ComparisonOperator.LTE);
 
                 case IN -> {
-                    if (value instanceof Collection<?> collection && !collection.isEmpty()) {
+                    if (value instanceof Collection<?> collection) {
                         if ("id".equals(field)) {
                             yield root.get(field).in(collection.stream().map(val -> Long.parseLong(val.toString())).toList());
                         } else {
@@ -100,10 +100,11 @@ public interface BaseRepository <T, ID extends Serializable> extends JpaReposito
             Root<?> root,
             String field,
             Object value,
-            QueryComparisonOperatorEnum op
+            ComparisonOperator op
     ) {
         Path<?> path = root.get(field);
         Class<?> fieldType = path.getJavaType();
+
         try {
             if (fieldType.equals(Boolean.class)) {
                 return op.build(cb, root.get(field), Boolean.parseBoolean(value.toString()));
@@ -139,6 +140,36 @@ public interface BaseRepository <T, ID extends Serializable> extends JpaReposito
         }
     }
 
+
+    enum ComparisonOperator {
+        EQ {
+            public <T extends Comparable<? super T>> Predicate build(CriteriaBuilder cb, Path<T> path, T val) {
+                return cb.equal(path, val);
+            }
+        },
+        GT {
+            public <T extends Comparable<? super T>> Predicate build(CriteriaBuilder cb, Path<T> path, T val) {
+                return cb.greaterThan(path, val);
+            }
+        },
+        GTE {
+            public <T extends Comparable<? super T>> Predicate build(CriteriaBuilder cb, Path<T> path, T val) {
+                return cb.greaterThanOrEqualTo(path, val);
+            }
+        },
+        LT {
+            public <T extends Comparable<? super T>> Predicate build(CriteriaBuilder cb, Path<T> path, T val) {
+                return cb.lessThan(path, val);
+            }
+        },
+        LTE {
+            public <T extends Comparable<? super T>> Predicate build(CriteriaBuilder cb, Path<T> path, T val) {
+                return cb.lessThanOrEqualTo(path, val);
+            }
+        };
+
+        public abstract <T extends Comparable<? super T>> Predicate build(CriteriaBuilder cb, Path<T> path, T val);
+    }
     default Predicate[] createDefaultPredicate(CriteriaBuilder criteriaBuilder, Root<?> root, QueryWrapper queryWrapper) {
         return createDefaultPredicate(criteriaBuilder, root, queryWrapper.search());
     }
@@ -152,20 +183,21 @@ public interface BaseRepository <T, ID extends Serializable> extends JpaReposito
         return findAll(spec, pageable);
     }
 
-    default Page<T> query(Map<String, QueryFieldWrapper> param, Pageable pageable, Function<Map<String, QueryFieldWrapper>, Specification<T>> query) {
+    default Page<T> query(Map<String, QueryFieldWrapper> param, Pageable pageable, org.springframework.cglib.core.internal.Function<Map<String, QueryFieldWrapper>, Specification<T>> query) {
         return findAll(query.apply(param), pageable);
     }
-    default Page<T> query(QueryWrapper queryWrapper, Function<Map<String, QueryFieldWrapper>, Specification<T>> query) {
+    default Page<T> query(QueryWrapper queryWrapper, org.springframework.cglib.core.internal.Function<Map<String, QueryFieldWrapper>, Specification<T>> query) {
         return query(queryWrapper.search(), queryWrapper.pagination(), query);
     }
     default Page<T> query(Specification<T> query, Pageable pageable) {
         return findAll(query, pageable);
     }
-    default <D extends List<?>> PaginationWrapper<D> query(Map<String, QueryFieldWrapper> param, Pageable pageable, Function<Map<String, QueryFieldWrapper>, Specification<T>> query, Function<Page<T>, PaginationWrapper<D>> mapper) {
+    default <D extends List<?>> PaginationWrapper<D> query(Map<String, QueryFieldWrapper> param, Pageable pageable, org.springframework.cglib.core.internal.Function<Map<String, QueryFieldWrapper>, Specification<T>> query, org.springframework.cglib.core.internal.Function<Page<T>, PaginationWrapper<D>> mapper) {
         var entityResult = findAll(query.apply(param), pageable);
         return mapper.apply(entityResult);
     }
-    default <D extends List<?>> PaginationWrapper<D> query(QueryWrapper queryWrapper, Function<Map<String, QueryFieldWrapper>, Specification<T>> query, Function<Page<T>, PaginationWrapper<D>> mapper) {
+    default <D extends List<?>> PaginationWrapper<D> query(QueryWrapper queryWrapper, org.springframework.cglib.core.internal.Function<Map<String, QueryFieldWrapper>, Specification<T>> query, Function<Page<T>, PaginationWrapper<D>> mapper) {
         return query(queryWrapper.search(), queryWrapper.pagination(), query, mapper);
     }
 }
+
