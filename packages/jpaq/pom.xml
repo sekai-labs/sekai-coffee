@@ -13,7 +13,7 @@
 
     <groupId>org.sekailabs</groupId>
     <artifactId>jpaq</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
     <packaging>jar</packaging>
     <name>jpaq</name>
     <description>A lightweight library for converting URL queries to JPA Specifications</description>
