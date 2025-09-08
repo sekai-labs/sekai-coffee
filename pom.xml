@@ -29,32 +29,6 @@
         <url/>
     </scm>
 
-    <profiles>
-        <profile>
-            <id>deploy-nexus</id>
-            <distributionManagement>
-                <repository>
-                    <id>nexus-releases</id>
-                    <url>https://registry.arisavinh.dev/repository/maven-releases/</url>
-                </repository>
-                <snapshotRepository>
-                    <id>nexus-snapshots</id>
-                    <url>https://registry.arisavinh.dev/repository/maven-snapshots/</url>
-                </snapshotRepository>
-            </distributionManagement>
-        </profile>
-
-        <profile>
-            <id>deploy-github</id>
-            <distributionManagement>
-                <repository>
-                    <id>github</id>
-                    <url>https://maven.pkg.github.com/sekai-labs/sekai-coffee</url>
-                </repository>
-            </distributionManagement>
-        </profile>
-    </profiles>
-
     <modules>
         <module>packages</module>
     </modules>
